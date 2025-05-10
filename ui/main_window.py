@@ -114,7 +114,6 @@ class MainWindow(QMainWindow):
         """Set up signal-slot connections."""
         # Connect control panel signals
         self.controls_panel.plotSettingsChanged.connect(self._on_plot_settings_changed)
-        self.controls_panel.axisLimitsChanged.connect(self._on_axis_limits_changed)
     
     def open_file(self):
         """Open a pendulum data file."""
@@ -160,52 +159,43 @@ class MainWindow(QMainWindow):
     def _update_plots(self):
         """Update the plots based on current settings."""
         if not self.data_loader.is_loaded:
+            print("No data loaded, cannot update plots")
             return
+        
+        print("Updating plots...")
         
         # Get the data
         data = self.data_loader.get_data()
+        print(f"Data for plotting: {data.shape} rows, {data.columns.tolist()}")
         
         # Update the plot manager with current UI settings
         enabled_plots = self.controls_panel.get_enabled_plots()
+        print(f"Enabled plots: {enabled_plots}")
+        
         for plot_id, enabled in enabled_plots.items():
             self.plot_manager.set_plot_enabled(plot_id, enabled)
         
         # Create the plots
         figure = self.plot_panel.get_figure()
-        self.plot_manager.create_plots(data, figure)
+        created_plots, all_axes = self.plot_manager.create_plots(data, figure)
+        print(f"Created {len(created_plots)} plots")
+        
+        # Register axes for synchronization
+        self.plot_panel.register_axes(all_axes)
         
         # Refresh the display
         self.plot_panel.refresh()
+        print("Plots refreshed")
     
     def _on_plot_settings_changed(self):
         """Handle plot settings changes."""
         self._update_plots()
     
-    def _on_axis_limits_changed(self, limits):
-        """
-        Handle axis limit changes.
-        
-        Args:
-            limits (dict): The new axis limits
-        """
-        # Update the plot manager
-        self.plot_manager.set_axis_limits(**limits)
-        
-        # Update the plots
-        self.plot_manager.update_plots()
-        
-        # Refresh the display
-        self.plot_panel.refresh()
+
     
     def _reset_view(self):
         """Reset the plot view."""
-        # Reset axis limits to auto
-        self.plot_manager.set_axis_limits(None, None, None, None)
-        
-        # Update the UI
-        self.controls_panel.update_from_plot_manager(self.plot_manager)
-        
-        # Update the plots
+        # Update the plots with auto scaling
         self._update_plots()
     
     def _show_about(self):

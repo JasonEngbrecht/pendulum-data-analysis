@@ -39,11 +39,20 @@ class DataLoader:
             self.filename = os.path.basename(filepath)
             self.is_loaded = True
             
+            print(f"Loaded CSV file: {filepath}")
+            print(f"Initial data shape: {self.data.shape}")
+            print(f"Initial columns: {self.data.columns.tolist()}")
+            
             # Perform basic data validation
             if self._validate_data():
                 # Calculate derived quantities if needed
-                self._calculate_derived_values()
-                return True
+                if self._calculate_derived_values():
+                    print("Data processing complete.")
+                    return True
+                else:
+                    print("Failed to calculate derived values.")
+                    self.is_loaded = False
+                    return False
             else:
                 self.is_loaded = False
                 return False
@@ -60,27 +69,12 @@ class DataLoader:
         Returns:
             bool: True if data is valid, False otherwise
         """
-        # Check if the CSV has the expected columns for pendulum data
-        # This will depend on the exact format of your CSV files
-        # For now, we'll check for basic x, y coordinates
-        
-        required_columns = []
-        
-        # Check for columns related to position
-        position_columns = ['x', 'y']
-        time_column = 'time'
-        
-        # Look for variations of column names
-        for col in self.data.columns:
-            col_lower = col.lower()
-            if any(pos in col_lower for pos in ['x_pos', 'x position', 'x-position', 'x']):
-                position_columns[0] = col
-            elif any(pos in col_lower for pos in ['y_pos', 'y position', 'y-position', 'y']):
-                position_columns[1] = col
-            elif any(t in col_lower for t in ['time', 'timestamp', 't']):
-                time_column = col
-        
-        required_columns = position_columns + [time_column]
+        # Check for required columns for pendulum analysis data
+        required_columns = [
+            'date_recorded', 'time_recorded', 
+            'semi_major_axis', 'semi_minor_axis', 
+            'rotation_angle_deg', 'eccentricity'
+        ]
         
         # Check if all required columns exist
         missing_columns = [col for col in required_columns if col not in self.data.columns]
@@ -94,25 +88,43 @@ class DataLoader:
     def _calculate_derived_values(self):
         """
         Calculate additional derived values from the raw data.
-        For example: velocity, acceleration, etc.
+        Converts date_recorded and time_recorded into a datetime and then into seconds.
         """
-        # This method will be expanded as needed
-        # For now, we'll just ensure the data is properly formatted
+        import pandas as pd
+        from datetime import datetime
         
-        # Make sure we have a time column
-        if 'time' not in self.data.columns and 't' in self.data.columns:
-            self.data['time'] = self.data['t']
+        # Create a datetime column by combining date and time
+        try:
+            # Check if required columns exist
+            if 'date_recorded' not in self.data.columns or 'time_recorded' not in self.data.columns:
+                print(f"Error: Missing date or time columns. Available columns: {self.data.columns.tolist()}")
+                return False
+                
+            # Combine date and time columns
+            self.data['datetime'] = pd.to_datetime(self.data['date_recorded'] + ' ' + self.data['time_recorded'])
+            
+            # Calculate seconds since start
+            start_time = self.data['datetime'].min()
+            self.data['time'] = (self.data['datetime'] - start_time).dt.total_seconds()
+            
+            # Sort by time
+            self.data = self.data.sort_values('time')
+            
+            # Reset index after sorting
+            self.data = self.data.reset_index(drop=True)
+            
+            print(f"Data converted to time series. Time range: {self.data['time'].min()} to {self.data['time'].max()} seconds")
+            print(f"Data shape after processing: {self.data.shape}")
+            print(f"Columns after processing: {self.data.columns.tolist()}")
+            return True
+        except Exception as e:
+            print(f"Error calculating time series: {e}")
+            return False
         
-        # If there are NaN values, interpolate or drop them
+        # Handle any NaN values
         if self.data.isna().any().any():
             self.data = self.data.interpolate(method='linear')
             self.data = self.data.dropna()
-        
-        # Sort by time if it exists
-        if 'time' in self.data.columns:
-            self.data = self.data.sort_values('time')
-        
-        # TODO: Add calculations for velocity, acceleration, etc.
     
     def get_data(self):
         """
@@ -147,6 +159,8 @@ class DataLoader:
             'rows': len(self.data),
             'columns': self.get_column_names(),
             'time_range': (self.data['time'].min(), self.data['time'].max()) if 'time' in self.data.columns else None,
-            'x_range': (self.data['x'].min(), self.data['x'].max()) if 'x' in self.data.columns else None,
-            'y_range': (self.data['y'].min(), self.data['y'].max()) if 'y' in self.data.columns else None,
+            'semi_major_axis_range': (self.data['semi_major_axis'].min(), self.data['semi_major_axis'].max()) if 'semi_major_axis' in self.data.columns else None,
+            'semi_minor_axis_range': (self.data['semi_minor_axis'].min(), self.data['semi_minor_axis'].max()) if 'semi_minor_axis' in self.data.columns else None,
+            'rotation_angle_range': (self.data['rotation_angle_deg'].min(), self.data['rotation_angle_deg'].max()) if 'rotation_angle_deg' in self.data.columns else None,
+            'eccentricity_range': (self.data['eccentricity'].min(), self.data['eccentricity'].max()) if 'eccentricity' in self.data.columns else None,
         }

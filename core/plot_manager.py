@@ -114,11 +114,11 @@ class PlotManager:
             figure (matplotlib.figure.Figure): Figure to draw the plots on
             
         Returns:
-            list: List of created plot objects
+            list: List of created plot objects and the list of axes
         """
         # Import the plot classes here to avoid circular imports
-        from plots.position_plot import PositionPlot
         from plots.time_series_plot import TimeSeriesPlot
+        import matplotlib.pyplot as plt
         
         # Clear existing plots
         self.plots = {}
@@ -130,49 +130,46 @@ class PlotManager:
         
         if num_plots == 0:
             # No plots to display
-            return []
+            return [], []
         
-        # Determine grid size (simple approach: 1 row for 1 plot, 2 rows for 2-4 plots)
-        if num_plots == 1:
-            rows, cols = 1, 1
-        elif num_plots <= 2:
-            rows, cols = 1, 2
-        else:
-            rows = 2
-            cols = (num_plots + 1) // 2  # Ceiling division
+        # Always use vertical stacking: num_plots rows, 1 column
+        rows, cols = num_plots, 1
         
         # Create each enabled plot
-        plot_idx = 0
         created_plots = []
+        all_axes = []  # Keep track of all axes for synchronization
+        sharex = None  # Will store the first axes to share x-axis with others
         
-        for plot_id in enabled_plots:
-            if plot_idx >= rows * cols:
-                break
-                
-            # Create a subplot
-            ax = figure.add_subplot(rows, cols, plot_idx + 1)
+        for plot_idx, plot_id in enumerate(enabled_plots):
+            # Create a subplot, sharing x-axis with the first plot
+            if plot_idx == 0:
+                ax = figure.add_subplot(rows, cols, plot_idx + 1)
+                sharex = ax  # Save first axes for sharing
+            else:
+                ax = figure.add_subplot(rows, cols, plot_idx + 1, sharex=sharex)
+                # Only show x label and tick labels on the bottom plot
+                if plot_idx < num_plots - 1:
+                    plt.setp(ax.get_xticklabels(), visible=False)
+                    ax.set_xlabel('')
             
-            # Create the appropriate plot based on type
-            if plot_id == 'position':
-                plot = PositionPlot(data, ax)
-                self.plots[plot_id] = plot
-                created_plots.append(plot)
-            elif plot_id in ['x_time_series', 'y_time_series']:
-                # Specify which dimension to plot
-                dimension = 'x' if plot_id == 'x_time_series' else 'y'
-                plot = TimeSeriesPlot(data, ax, dimension=dimension)
-                self.plots[plot_id] = plot
-                created_plots.append(plot)
+            # Add axes to the list for synchronization
+            all_axes.append(ax)
+            
+            # Create a time series plot for the specific parameter
+            plot = TimeSeriesPlot(data, ax, parameter=plot_id)
+            self.plots[plot_id] = plot
+            created_plots.append(plot)
+            
+            # Initialize the plot (this is key to make it display)
+            plot.initialize()
             
             # Apply the current axis limits
             plot.update_axis_limits(self.axis_limits)
-            
-            plot_idx += 1
         
-        # Adjust layout
-        figure.tight_layout()
+        # Adjust layout with more vertical space between subplots
+        figure.tight_layout(pad=2.0, h_pad=3.0)
         
-        return created_plots
+        return created_plots, all_axes
     
     def update_plots(self):
         """

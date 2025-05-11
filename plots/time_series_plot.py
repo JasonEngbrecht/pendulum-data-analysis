@@ -52,8 +52,8 @@ class TimeSeriesPlot(BasePlot):
         print(f"Time range: {self.data['time'].min()} to {self.data['time'].max()}")
         print(f"{self.parameter} range: {self.data[self.parameter].min()} to {self.data[self.parameter].max()}")
         
-        # Set up the axes
-        self.ax.set_xlabel("Time (seconds)")
+        # We'll let plot_manager decide which plots show the x-axis label
+        # Only the bottom plot will show it
         
         # Set appropriate y-axis label based on parameter
         if self.parameter == "rotation_angle_deg":
@@ -65,8 +65,8 @@ class TimeSeriesPlot(BasePlot):
         else:
             self.ax.set_ylabel(f"{self.parameter.replace('_', ' ').title()}")
         
-        self.ax.set_title(self.title)
-        self.ax.grid(True)
+        # Don't set a title to keep plots compact
+        self.ax.grid(True, alpha=0.3)  # Lighter grid for less visual noise
         
         # Enable autoscaling for both axes
         self.ax.autoscale(True, 'both', True)

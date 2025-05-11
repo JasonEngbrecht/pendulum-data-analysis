@@ -116,7 +116,6 @@ class BasePlot:
         """
         if self.ax is not None:
             self.ax.clear()
-            if self.title:
-                self.ax.set_title(self.title)
+            # Don't set title to keep plots compact
             return True
         return False

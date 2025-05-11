@@ -10,8 +10,13 @@ A tool for visualizing and analyzing pendulum motion data from CSV files. This a
   - Semi-minor axis
   - Rotation angle
   - Eccentricity
-- **Vertically stacked plots**: All plots are stacked vertically with synchronized x-axes for easy comparison
-- **Synchronized navigation**: Zoom or pan on any plot and all other plots will maintain the same x-axis range
+- **Optimized plot layout**: All plots are stacked vertically with:
+  - No plot titles for a cleaner appearance
+  - X-axis tick labels only on the bottom plot
+  - X-axis title ("Time (seconds)") only on the bottom plot
+  - Synchronized x-axes for easy comparison across parameters
+  - Minimal spacing between plots for more efficient use of screen space
+- **Synchronized navigation**: Zoom or pan on any plot and all other plots maintain the same x-axis range
 - **Customizable views**: Enable/disable specific plots through checkboxes
 - **Interactive plots**: Zoom, pan, and save plots with built-in controls
 - **Future analysis tools**: Curve fitting capabilities coming soon
@@ -42,7 +47,8 @@ pendulum-data-analysis/
 │   └── time_series_plot.py   # Time series plots
 │
 └── utils/                    # Utility functions
-    └── config.py             # Configuration handling
+    ├── config.py             # Configuration handling
+    └── plot_helpers.py       # Helper functions for plot customization
 ```
 
 ## Current Functionality
@@ -56,9 +62,9 @@ The application currently allows users to:
    - `eccentricity`: Eccentricity of the elliptical path
 
 2. **View time series plots** showing how parameters change over time
-   - All plots are vertically stacked for easy comparison
+   - All plots are vertically stacked for easy comparison with minimal spacing
    - X-axes are synchronized across all plots (zooming/panning one plot affects all)
-   - Time axis (x-axis) labels appear only on the bottom plot to avoid redundancy
+   - X-axis tick labels and "Time (seconds)" label appear only on the bottom plot
 
 3. **Customize the display**:
    - Toggle plots on/off using checkboxes
@@ -116,4 +122,3 @@ The application expects CSV files with the following columns:
 - Statistical analysis tools
 - Multiple data file comparison
 - Export of analysis results
-

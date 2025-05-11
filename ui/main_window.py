@@ -15,6 +15,7 @@ from ui.controls_panel import ControlsPanel
 from ui.file_selector import FileSelector
 from core.data_loader import DataLoader
 from core.plot_manager import PlotManager
+from utils.plot_helpers import fix_bottom_axis_ticks
 
 
 class MainWindow(QMainWindow):
@@ -43,17 +44,17 @@ class MainWindow(QMainWindow):
         """Initialize the UI components."""
         # Set window properties
         self.setWindowTitle("Pendulum Data Analysis")
-        self.setMinimumSize(1000, 700)
+        self.setMinimumSize(1000, 800)  # Increased height for better plot display
         
         # Create central widget
         central_widget = QWidget()
         main_layout = QHBoxLayout()
         
         # Create the plot panel (left side)
-        main_layout.addWidget(self.plot_panel, 7)  # 70% of width
+        main_layout.addWidget(self.plot_panel, 8)  # 80% of width
         
         # Create the controls panel (right side)
-        main_layout.addWidget(self.controls_panel, 3)  # 30% of width
+        main_layout.addWidget(self.controls_panel, 2)  # 20% of width
         
         central_widget.setLayout(main_layout)
         self.setCentralWidget(central_widget)
@@ -182,6 +183,9 @@ class MainWindow(QMainWindow):
         
         # Register axes for synchronization
         self.plot_panel.register_axes(all_axes)
+        
+        # Force tick labels to appear on bottom plot
+        fix_bottom_axis_ticks(all_axes)
         
         # Refresh the display
         self.plot_panel.refresh()

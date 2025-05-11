@@ -25,7 +25,7 @@ class PlotPanel(QWidget):
         super().__init__(parent)
         
         # Initialize attributes
-        self.figure = Figure(figsize=(10, 12), dpi=100)  # Taller figure for vertical stacking
+        self.figure = Figure(figsize=(10, 14), dpi=100)  # Taller figure for vertical stacking, more height for more compact plots
         self.canvas = FigureCanvas(self.figure)
         self.toolbar = NavigationToolbar(self.canvas, self)
         self.no_data_label = QLabel("No data loaded. Select a file to begin.")
@@ -37,9 +37,6 @@ class PlotPanel(QWidget):
         
         # Initialize UI
         self._init_ui()
-        
-        # Connect to events for axis synchronization
-        self.canvas.mpl_connect('draw_event', self._on_draw)
     
     def _init_ui(self):
         """Initialize the UI components."""
@@ -87,43 +84,6 @@ class PlotPanel(QWidget):
         """Refresh the plot display."""
         self.canvas.draw()
     
-    def _on_draw(self, event):
-        """Handle draw events for axis synchronization."""
-        # Skip if no axes or only one axis
-        if len(self.axes_list) <= 1:
-            return
-            
-        # Find the current x limits of all axes
-        x_limits = [ax.get_xlim() for ax in self.axes_list]
-        
-        # If there are differences in x limits, sync them to the most recently modified axis
-        if not all(lim == x_limits[0] for lim in x_limits):
-            # Find the axis that was most recently modified
-            # For simplicity, we'll assume the last axis in the event's figure is the one being modified
-            # This is not perfect but works for most interactions
-            self._sync_x_axes()
-    
-    def _sync_x_axes(self):
-        """Synchronize the x-axes of all plots."""
-        if not self.axes_list:
-            return
-            
-        # We'll use the first axis as the reference
-        x_min, x_max = self.axes_list[0].get_xlim()
-        
-        # Set the same x limits on all axes
-        for ax in self.axes_list:
-            ax.set_xlim(x_min, x_max)
-        
-        # Redraw the canvas
-        self.canvas.draw_idle()
-    
     def register_axes(self, axes):
         """Register axes for synchronization."""
         self.axes_list = axes
-        
-        # Set up linked x-axes using matplotlib's callbacks
-        if len(self.axes_list) > 1:
-            # Make each axis sharex with the first one
-            for ax in self.axes_list[1:]:
-                ax.sharex(self.axes_list[0])

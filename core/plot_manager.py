@@ -138,36 +138,42 @@ class PlotManager:
         # Create each enabled plot
         created_plots = []
         all_axes = []  # Keep track of all axes for synchronization
-        sharex = None  # Will store the first axes to share x-axis with others
+        
+        # Create all plots with shared x-axis
+        sharex = None  # First axis to share with
         
         for plot_idx, plot_id in enumerate(enabled_plots):
-            # Create a subplot, sharing x-axis with the first plot
+            # Create subplot 
             if plot_idx == 0:
                 ax = figure.add_subplot(rows, cols, plot_idx + 1)
                 sharex = ax  # Save first axes for sharing
             else:
                 ax = figure.add_subplot(rows, cols, plot_idx + 1, sharex=sharex)
-                # Only show x label and tick labels on the bottom plot
-                if plot_idx < num_plots - 1:
-                    plt.setp(ax.get_xticklabels(), visible=False)
-                    ax.set_xlabel('')
             
-            # Add axes to the list for synchronization
             all_axes.append(ax)
             
-            # Create a time series plot for the specific parameter
+            # Remove title
+            ax.set_title('')
+            
+            # Configure x-axis visibility
+            if plot_idx < num_plots - 1:  # Not the bottom plot
+                # Hide x-axis tick labels on non-bottom plots
+                plt.setp(ax.get_xticklabels(), visible=False)
+                ax.set_xlabel('')
+            else:  # This is the bottom plot
+                # Show the x label
+                ax.set_xlabel("Time (seconds)")
+            
+            # Create the plot
             plot = TimeSeriesPlot(data, ax, parameter=plot_id)
             self.plots[plot_id] = plot
             created_plots.append(plot)
             
-            # Initialize the plot (this is key to make it display)
+            # Initialize the plot
             plot.initialize()
-            
-            # Apply the current axis limits
-            plot.update_axis_limits(self.axis_limits)
         
-        # Adjust layout with more vertical space between subplots
-        figure.tight_layout(pad=2.0, h_pad=3.0)
+        # Tighten the layout
+        figure.subplots_adjust(hspace=0.0)
         
         return created_plots, all_axes
     

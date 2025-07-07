@@ -32,6 +32,12 @@ class PlotPanel(QWidget):
         self.no_data_label.setStyleSheet("QLabel { color: gray; font-size: 14px; }")
         self.no_data_label.setAlignment(Qt.AlignCenter)
         
+        # Label for when all data is filtered out
+        self.no_data_after_filter_label = QLabel("All data points have been filtered out. Adjust filter settings to see data.")
+        self.no_data_after_filter_label.setStyleSheet("QLabel { color: orange; font-size: 14px; }")
+        self.no_data_after_filter_label.setAlignment(Qt.AlignCenter)
+        self.no_data_after_filter_label.setVisible(False)
+        
         # List to keep track of axes for synchronization
         self.axes_list = []
         
@@ -48,22 +54,37 @@ class PlotPanel(QWidget):
         
         # Initially show the no data label
         layout.addWidget(self.no_data_label)
+        layout.addWidget(self.no_data_after_filter_label)
         
         self.setLayout(layout)
         
         # Start with no data
         self.show_no_data(True)
     
-    def show_no_data(self, show=True):
+    def show_no_data(self, show=True, filtered=False):
         """
         Show/hide the 'no data' message.
         
         Args:
             show (bool): Whether to show the message
+            filtered (bool): Whether this is due to filtering
         """
-        self.no_data_label.setVisible(show)
-        self.canvas.setVisible(not show)
-        self.toolbar.setVisible(not show)
+        if show:
+            # Clear any existing plots when showing no data message
+            self.clear_plots()
+            # Show appropriate message
+            self.no_data_label.setVisible(not filtered)
+            self.no_data_after_filter_label.setVisible(filtered)
+            self.canvas.setVisible(False)
+            self.toolbar.setVisible(False)
+        else:
+            # Hide all messages and show plots
+            self.no_data_label.setVisible(False)
+            self.no_data_after_filter_label.setVisible(False)
+            self.canvas.setVisible(True)
+            self.toolbar.setVisible(True)
+            # Force a refresh to ensure canvas is updated
+            self.canvas.draw_idle()
     
     def get_figure(self):
         """

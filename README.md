@@ -19,6 +19,12 @@ A tool for visualizing and analyzing pendulum motion data from CSV files. This a
 - **Synchronized navigation**: Zoom or pan on any plot and all other plots maintain the same x-axis range
 - **Customizable views**: Enable/disable specific plots through checkboxes
 - **Interactive plots**: Zoom, pan, and save plots with built-in controls
+- **Data filtering**: Remove outliers using IQR-based filtering
+  - Separate filters for semi-major and semi-minor axes
+  - Automatic IQR bounds calculation on file load
+  - Manual adjustment of filter bounds
+  - Visual feedback showing number of filtered points
+  - Easy reset to IQR bounds with dedicated button
 - **Future analysis tools**: Curve fitting capabilities coming soon
 
 ## Project Structure
@@ -40,6 +46,7 @@ pendulum-data-analysis/
 ├── core/                     # Core functionality
 │   ├── data_loader.py        # CSV loading and data preparation
 │   ├── plot_manager.py       # Manages which plots are displayed
+│   ├── filter_manager.py     # Manages data filtering for outlier removal
 │   └── analysis.py           # (Future) Analysis and curve fitting
 │
 ├── plots/                    # Plot implementations
@@ -66,7 +73,16 @@ The application currently allows users to:
    - X-axes are synchronized across all plots (zooming/panning one plot affects all)
    - X-axis tick labels and "Time (seconds)" label appear only on the bottom plot
 
-3. **Customize the display**:
+3. **Filter outliers** from the data:
+   - IQR (Interquartile Range) method automatically calculates suggested bounds
+   - Filter controls for semi-major and semi-minor axes
+   - Filters can be enabled/disabled independently
+   - Manual adjustment of filter min/max values
+   - Quick reset to IQR bounds with "IQR" button
+   - Real-time display of filtered data statistics
+   - All plots reflect the filtered data
+
+4. **Customize the display**:
    - Toggle plots on/off using checkboxes
    - Use built-in matplotlib tools for zooming, panning, and saving plots
 
@@ -100,7 +116,12 @@ python main.py
 
 1. **Open a CSV file**: Use the File menu or Ctrl+O shortcut
 2. **Select plot types**: Enable/disable plot types using the checkboxes on the right panel
-3. **Interact with plots**: 
+3. **Filter data** (optional):
+   - Check the checkbox next to "Semi-Major Axis" or "Semi-Minor Axis" to enable filtering
+   - Adjust the Min/Max values to set filter bounds
+   - Click "IQR" to reset to the automatically calculated IQR bounds
+   - The status line shows how many points are being displayed/filtered
+4. **Interact with plots**: 
    - Use the matplotlib toolbar to zoom, pan, and save plots
    - When zooming or panning any plot, all plots maintain the same x-axis range for easy comparison
    - Use the Reset View button in the View menu to restore the default view

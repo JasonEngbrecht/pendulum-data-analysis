@@ -15,6 +15,7 @@ from ui.controls_panel import ControlsPanel
 from ui.file_selector import FileSelector
 from core.data_loader import DataLoader
 from core.plot_manager import PlotManager
+from core.filter_manager import FilterManager
 from utils.plot_helpers import fix_bottom_axis_ticks
 
 
@@ -32,6 +33,7 @@ class MainWindow(QMainWindow):
         self.controls_panel = ControlsPanel(self)
         self.data_loader = DataLoader()
         self.plot_manager = PlotManager()
+        self.filter_manager = FilterManager()
         
         # Track current file
         self.current_file = None
@@ -115,6 +117,7 @@ class MainWindow(QMainWindow):
         """Set up signal-slot connections."""
         # Connect control panel signals
         self.controls_panel.plotSettingsChanged.connect(self._on_plot_settings_changed)
+        self.controls_panel.filterSettingsChanged.connect(self._on_filter_settings_changed)
     
     def open_file(self):
         """Open a pendulum data file."""
@@ -136,6 +139,12 @@ class MainWindow(QMainWindow):
         if self.data_loader.load_csv(file_path):
             # Update current file
             self.current_file = file_path
+            
+            # Initialize filter manager with the new data
+            self.filter_manager.set_data(self.data_loader.get_data())
+            
+            # Update filter controls with IQR bounds
+            self.controls_panel.update_filter_controls(self.filter_manager.get_filter_settings())
             
             # Show the plots
             self.plot_panel.show_no_data(False)
@@ -163,11 +172,25 @@ class MainWindow(QMainWindow):
             print("No data loaded, cannot update plots")
             return
         
-        print("Updating plots...")
+        print("\n=== Updating plots ===")
         
-        # Get the data
-        data = self.data_loader.get_data()
-        print(f"Data for plotting: {data.shape} rows, {data.columns.tolist()}")
+        # Get the filtered data
+        data = self.filter_manager.get_filtered_data()
+        if data is None:
+            print("No data loaded")
+            self.plot_panel.show_no_data(True, filtered=False)
+            return
+        elif len(data) == 0:
+            print("No data available after filtering")
+            self.plot_panel.show_no_data(True, filtered=True)
+            return
+        else:
+            print(f"Data for plotting: {data.shape} rows, columns: {data.columns.tolist()}")
+            # Make sure we're showing the plots, not the no-data message
+            self.plot_panel.show_no_data(False)
+            
+        # Update filter statistics display
+        self.controls_panel.update_filter_stats(self.filter_manager.get_filter_stats())
         
         # Update the plot manager with current UI settings
         enabled_plots = self.controls_panel.get_enabled_plots()
@@ -178,8 +201,9 @@ class MainWindow(QMainWindow):
         
         # Create the plots
         figure = self.plot_panel.get_figure()
+        print(f"Creating plots with PlotManager...")
         created_plots, all_axes = self.plot_manager.create_plots(data, figure)
-        print(f"Created {len(created_plots)} plots")
+        print(f"Created {len(created_plots)} plots with {len(all_axes)} axes")
         
         # Register axes for synchronization
         self.plot_panel.register_axes(all_axes)
@@ -189,13 +213,55 @@ class MainWindow(QMainWindow):
         
         # Refresh the display
         self.plot_panel.refresh()
-        print("Plots refreshed")
+        print("Plots refreshed successfully")
+        print("=== Plot update complete ===")
     
     def _on_plot_settings_changed(self):
         """Handle plot settings changes."""
         self._update_plots()
     
-
+    def _on_filter_settings_changed(self):
+        """Handle filter settings changes."""
+        print("\n=== Filter settings changed ===")
+        
+        # Get current filter settings from UI
+        ui_settings = self.controls_panel.get_filter_settings()
+        
+        # Update filter manager
+        for axis_name, settings in ui_settings.items():
+            print(f"\n{axis_name}:")
+            print(f"  UI enabled: {settings['enabled']}")
+            print(f"  UI min: {settings['min']}")
+            print(f"  UI max: {settings['max']}")
+            
+            self.filter_manager.set_filter_enabled(axis_name, settings['enabled'])
+            
+            # Get current stored settings
+            current_settings = self.filter_manager.get_filter_settings()[axis_name]
+            
+            # Check if we should reset to IQR bounds (both fields empty)
+            if settings['min'] is None and settings['max'] is None:
+                # Reset to IQR bounds if available
+                if current_settings['iqr_min'] is not None:
+                    print(f"  Resetting to IQR bounds")
+                    self.filter_manager.set_filter_bounds(
+                        axis_name, 
+                        current_settings['iqr_min'], 
+                        current_settings['iqr_max']
+                    )
+            elif settings['min'] is not None or settings['max'] is not None:
+                # Update bounds, using current values as defaults for missing ones
+                min_val = settings['min'] if settings['min'] is not None else current_settings['min']
+                max_val = settings['max'] if settings['max'] is not None else current_settings['max']
+                self.filter_manager.set_filter_bounds(axis_name, min_val, max_val)
+        
+        # Update UI with current filter settings
+        self.controls_panel.update_filter_controls(self.filter_manager.get_filter_settings())
+        
+        # Update the plots
+        self._update_plots()
+        
+        print("=== Filter update complete ===")
     
     def _reset_view(self):
         """Reset the plot view."""
